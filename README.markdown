@@ -101,6 +101,30 @@ FYI, that `.ll` method means "latitude longitude".
 
 See the RDOC more more ... there are also operations on rectangular bounds (e.g., determining if a point is within bounds, find the center, etc).
 
+## SPHERICAL POLYGONS
+
+`Geokit::SphericalPolygon` computes geodesic surface area and the first
+moment on a sphere. It accepts one or more outer rings and reversed holes.
+Each ring is oriented with its represented region on the left of every
+directed edge when viewed from outside the sphere; reversing a small outer
+ring selects the complementary region larger than a hemisphere.
+
+```ruby
+triangle = Geokit::SphericalPolygon.new([
+  Geokit::LatLng.new(0, 0),
+  Geokit::LatLng.new(0, 90),
+  Geokit::LatLng.new(90, 0)
+])
+triangle.solid_angle   # steradians on the unit sphere
+triangle.area(radius: 6_376_772.71)
+triangle.first_moment  # unnormalized vector moment
+triangle.center        # normalized moment direction, or nil when it is zero
+```
+
+Edges connect adjacent vertices by the shorter great-circle arc, so
+subdividing such an arc does not change the area or moment. Adjacent
+antipodal vertices are invalid because their great-circle arc is not unique.
+
 ## CONFIGURATION
 
 If you're using this gem by itself, here are the configuration options:
