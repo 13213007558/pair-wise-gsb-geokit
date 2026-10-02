@@ -320,6 +320,42 @@ geocoders.rb contains all the geocoder implementations. All the geocoders
 inherit from a common base (class Geocoder) and implement the private method
 do_geocode.
 
+map_matching.rb contains an offline map matcher
+(Geokit::MapMatching) which snaps timestamped GPS observations to a
+road network. It implements a Hidden Markov Model solved with the
+Viterbi algorithm (Newson & Krumm, 2009): GPS position error is the
+emission model, and the difference between road-network driving
+distance and observed displacement is the transition model. Everything
+runs locally -- no geocoding, no map APIs and no built-in road data.
+The caller supplies the observations, the candidate road segments per
+observation, a router object answering road-network distances, and all
+model parameters (sigma, beta, optional max_time_gap):
+
+```ruby
+edges = {
+  main: Geokit::MapMatching::Edge.new(:main, [[lat1, lng1], [lat2, lng2]]),
+  # ...
+}
+router = MyRouter.new(edges) # responds to route_distance(candidate_a, candidate_b)
+                             # and returns meters, or nil when not drivable
+matcher = Geokit::MapMatching::Matcher.new(router: router, sigma: 8.0, beta: 30.0)
+
+observations = [[[lat, lng], Time.now], ...]
+candidates   = observations.map { |(point, _)| candidate_edges_near(point).map { |e| e.project(point) } }
+
+result = matcher.match(observations, candidates)
+result.segments.each do |segment|
+  segment.edges           # most likely road segment sequence
+  segment.matches.each { |m| m.point } # projected (snapped) position per observation
+end
+```
+
+The matcher never fabricates a route through the network: observations
+without candidates, duplicate or out-of-order timestamps, gaps beyond
+max_time_gap and unreachable transitions (e.g. against a one-way
+street) split the trajectory into separate segments instead of
+connecting them into an impossible path.
+
 ## WRITING YOUR OWN GEOCODERS
 
 If you would like to write your own geocoders, you can do so by requiring 'geokit' or 'geokit/geocoders.rb' in a new file and subclassing the base class (which is class "Geocoder").
