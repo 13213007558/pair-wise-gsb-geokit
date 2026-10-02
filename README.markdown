@@ -300,6 +300,72 @@ geo.all is just an array of additional Geolocs, so do what you want with it. If 
 geoloc that doesn't have any additional results, you will get  an array of one.
 
 
+
+## DATUM TRANSFORMATIONS
+
+Coordinates measured against different geodetic datums differ by more than a
+unit change. Geokit provides explicit `Geokit::Datum` objects for this; a
+plain `Geokit::LatLng` carries no datum and no datum is ever assumed for it.
+All transformations are computed locally -- no online coordinate
+transformation service is contacted.
+
+A datum combines a reference ellipsoid with an optional 7-parameter Helmert
+transformation to WGS 84. Geodetic coordinates (latitude/longitude in
+degrees, ellipsoidal height in meters) convert to earth-centered,
+earth-fixed (ECEF) coordinates and back, including near the poles and for
+negative heights:
+
+```ruby
+    irb> wgs84 = Geokit::Datum::DATUMS[:wgs84]
+    irb> wgs84.to_ecef(52.0, 1.7, 45.0)
+    => [3933256.226..., 116736.319..., 5002838.805...]
+    irb> wgs84.from_ecef(3933256.226, 116736.319, 5002838.805)
+    => [51.999..., 1.699..., 44.999...]
+```
+
+Datum-to-datum conversion goes through ECEF and each datum's Helmert
+transformation:
+
+```ruby
+    irb> osgb36 = Geokit::Datum::DATUMS[:osgb36]
+    irb> osgb36.convert_to(wgs84, 52.6575703, 1.7179216, 0.0)
+    => [52.6579786..., 1.7160519..., 44.701...]
+```
+
+Custom Helmert transformations must state their rotation convention and the
+units of every parameter -- nothing is guessed:
+
+```ruby
+    helmert = Geokit::Datum::HelmertTransform.new(
+      tx: 446.448, ty: -125.157, tz: 542.060,   # translations
+      rx: 0.1502, ry: 0.2470, rz: 0.8421,       # rotations
+      scale: -20.4894,                          # scale
+      convention: :position_vector,             # or :coordinate_frame
+      translation_unit: :meters,                # or :millimeters
+      rotation_unit: :arc_seconds,              # or :degrees, :radians
+      scale_unit: :ppm                          # or :unity
+    )
+```
+
+`inverse` applies the exact inverse of the forward matrix (not a sign flip
+of the parameters), so `inverse(forward(p)) == p` to numerical precision.
+
+For time-dependent frames, per-year parameter rates plus a reference epoch
+turn it into a 14-parameter transformation. Every call must then say which
+epoch the coordinates refer to; a missing epoch raises `ArgumentError`
+rather than guessing one:
+
+```ruby
+    helmert = Geokit::Datum::HelmertTransform.new(
+      tx: 0.5, ty: -0.2, tz: 0.3, rx: 0.0, ry: 0.0, rz: 0.0, scale: 0.0,
+      convention: :position_vector,
+      translation_unit: :meters, rotation_unit: :arc_seconds, scale_unit: :ppm,
+      rates: { dtx: 0.025, dty: -0.010, dtz: 0.015 },  # per year
+      reference_epoch: 2010.0
+    )
+    helmert.forward([1_000_000.0, 2_000_000.0, 3_000_000.0], epoch: 2020.0)
+```
+
 ## NOTES ON WHAT'S WHERE
 
 mappable.rb contains the Mappable module, which provides basic
@@ -319,6 +385,11 @@ AND the Mappable module goodness for free.
 geocoders.rb contains all the geocoder implementations. All the geocoders
 inherit from a common base (class Geocoder) and implement the private method
 do_geocode.
+
+datum.rb contains the Datum, Ellipsoid and HelmertTransform classes used for
+explicit geodetic datum handling (geodetic/ECEF conversion, 7- and
+14-parameter Helmert transformations). It is entirely self-contained and
+performs no network access.
 
 ## WRITING YOUR OWN GEOCODERS
 

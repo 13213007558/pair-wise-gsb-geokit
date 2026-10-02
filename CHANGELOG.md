@@ -1,3 +1,10 @@
+## Unreleased
+
+* Added Geokit::Datum with explicit ellipsoid, geodetic/ECEF conversion,
+  7-parameter Helmert transformations (position-vector or coordinate-frame
+  convention, explicit units) and epoch-dependent parameter rates. LatLng
+  remains datum-free and no online transformation service is used.
+
 ## 1.16.1
 
 * Fixing tests and removing additional references to unavailable geocoder.
@@ -231,4 +238,3 @@
 * new Bounds class for in-memory bounds-related operations
 * ability to calculate heading and midpoint between two points
 * ability to calculate endpoint given a point, heading, and distance
-
