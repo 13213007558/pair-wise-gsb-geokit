@@ -300,6 +300,82 @@ geo.all is just an array of additional Geolocs, so do what you want with it. If 
 geoloc that doesn't have any additional results, you will get  an array of one.
 
 
+## DATUMS AND HELMERT TRANSFORMATIONS
+
+Latitude/longitude pairs are unit-independent angles: a plain `LatLng` does not
+name a horizontal datum. Coordinates that mean a physical position require an
+explicit `Geokit::Datum`, and this library never calls an online transformation
+service:
+
+```ruby
+    point = Geokit::GeodeticPoint.new(51.4779, -0.0014, 24.0, # deg, deg, m
+                                     datum: Geokit::Datum::WGS84)
+    ecef = point.to_ecef            # metres, Earth-Centred Earth-Fixed XYZ
+    back = Geokit::Datum::WGS84.from_ecef(ecef)
+```
+
+A datum wraps an ellipsoid (`Geokit::Ellipsoid::WGS84`, `GRS80`,
+`AIRY_1830` or `INTERNATIONAL_1924`) and converts geodetic
+latitude/longitude/height to ECEF and back. The inverse conversion works near
+either pole and with negative ellipsoidal heights. A datum-agnostic `LatLng` can
+be labelled explicitly with
+`Geokit::GeodeticPoint.from_lat_lng(lat_lng, datum, height: metres)`.
+
+Transformations between datums use explicit seven-parameter Helmert objects.
+The rotation convention is mandatory, because published sets use both:
+
+* `:position_vector` (EPSG position-vector / Bursa-Wolf), or
+* `:coordinate_frame` (coordinate-frame rotation; rotation signs reversed).
+
+Units are also mandatory: translations accept `:metres`, `:millimetres` or
+`:feet`; rotations accept `:radians`, `:degrees`, `:arcseconds` or
+`:milliarcseconds`; scale accepts `:ratio`, `:ppm` or `:ppb`.
+
+```ruby
+    osgb36_to_wgs84 = Geokit::Helmert.new(
+      convention: :position_vector,
+      translation: [446.448, -125.157, 542.060], # metres
+      rotation: [0.1502, 0.2470, 0.8421],       # arcseconds
+      scale: 20.4894,                          # ppm
+      translation_unit: :metres,
+      rotation_unit: :arcseconds,
+      scale_unit: :ppm)
+    source = Geokit::GeodeticPoint.new(51.5, -1.0, 50.0,
+                                      datum: Geokit::Datum::OSGB36)
+    target = Geokit::Datum::OSGB36.transform(source, osgb36_to_wgs84,
+                                             Geokit::Datum::WGS84)
+```
+
+For time-dependent reference frames, provide parameter rates and a reference
+epoch. Rate units are per decimal year (`:metres_per_year`,
+`:millimetres_per_year`, `:arcseconds_per_year`,
+`:milliarcseconds_per_year`, `:ppm_per_year`, and so on); every application must
+then supply an observation epoch. Missing epochs or ambiguous units raise
+`ArgumentError` rather than defaulting to WGS 84, today's date, or a guessed
+unit.
+
+```ruby
+    to_2010 = Geokit::Helmert.new(
+      convention: :position_vector,
+      translation: [-1.0, 2.0, 3.0], translation_unit: :metres,
+      rotation: [0.02, -0.03, 0.05], rotation_unit: :milliarcseconds,
+      scale: -0.5, scale_unit: :ppb,
+      rates: { translation: [21.0, -8.0, 5.0],
+               rotation: [0.1, -0.2, 0.15],
+               scale: 0.02 },
+      rate_translation_unit: :millimetres_per_year,
+      rate_rotation_unit: :milliarcseconds_per_year,
+      rate_scale_unit: :ppb_per_year,
+      reference_epoch: 2010.0)
+    now = to_2010.forward(ecef_point, epoch: 2015.0)
+```
+
+`backward` inverts the 4x4 matrix numerically at the requested epoch; it is
+a real inverse, not the forward transform with every sign flipped (that trick
+is exact only for zero scale change). `#inverse` returns a wrapper whose
+forward direction is that numerical inverse.
+
+
 ## NOTES ON WHAT'S WHERE
 
 mappable.rb contains the Mappable module, which provides basic

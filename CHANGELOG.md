@@ -1,3 +1,12 @@
+## Unreleased
+
+* Added explicit Datum, Ellipsoid, GeodeticPoint and EcefPoint objects for
+  latitude/longitude/height <-> Earth-Centred Earth-Fixed conversions. Plain
+  LatLng values remain datum-agnostic and are never transformed implicitly.
+* Added seven-parameter Helmert transformations with explicit position-vector
+  or coordinate-frame conventions, explicit translation/rotation/scale units,
+  parameter rates, decimal-year epochs and numerically inverted matrices.
+
 ## 1.16.1
 
 * Fixing tests and removing additional references to unavailable geocoder.
@@ -231,4 +240,3 @@
 * new Bounds class for in-memory bounds-related operations
 * ability to calculate heading and midpoint between two points
 * ability to calculate endpoint given a point, heading, and distance
-
