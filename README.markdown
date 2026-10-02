@@ -320,6 +320,55 @@ geocoders.rb contains all the geocoder implementations. All the geocoders
 inherit from a common base (class Geocoder) and implement the private method
 do_geocode.
 
+## OFFLINE MAP MATCHING
+
+map_matching.rb snaps a timestamped GPS trajectory to a road network
+without contacting any map API. It uses a Hidden Markov Model (GPS
+position error as the emission model, the difference between network
+travel distance and observed displacement as the transition model) and
+decodes the most likely segment sequence with the Viterbi algorithm.
+This avoids the classic problem of points jumping back and forth
+between two parallel roads.
+
+You supply the observations, the candidate road segments per
+observation, and a network distance oracle; all scoring parameters are
+explicit:
+
+```ruby
+    matcher = Geokit::MapMatching::Matcher.new(
+      network: my_network, # route_distance(from_candidate, to_candidate) -> meters or nil
+      sigma: 10.0,         # GPS position error std-dev (in +units+)
+      beta: 40.0,          # transition tolerance scale (in +units+)
+      max_time_gap: 300,   # seconds; longer gaps split the trajectory
+      units: :meters
+    )
+
+    observations = [
+      Geokit::MapMatching::Observation.new(Time.now, Geokit::LatLng.new(0.0, 0.0)),
+      # ...
+    ]
+    candidates = observations.map { |obs| candidate_segments_near(obs.point) }
+
+    result = matcher.match(observations, candidates)
+    result.segments.each do |segment|
+      segment.points.each do |point|
+        puts point.segment.id
+      end
+    end
+```
+
+The network oracle receives the matcher's Candidate objects (which
+carry the segment, the projected point, and the offset along the
+polyline) and returns the network travel distance between them in the
+matcher's units, or nil when the pair is unreachable (for example a
+one-way street against its direction).
+
+Instead of inventing routes through walls, the result is segmented:
+result.breaks explains each split (:no_candidates for observations
+without candidate segments, :time_gap for long signal losses,
+:unreachable for disconnected road pairs). Observations with duplicate
+timestamps are rejected with DuplicateTimestampError.
+
 ## WRITING YOUR OWN GEOCODERS
 
 If you would like to write your own geocoders, you can do so by requiring 'geokit' or 'geokit/geocoders.rb' in a new file and subclassing the base class (which is class "Geocoder").

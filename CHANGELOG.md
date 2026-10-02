@@ -1,3 +1,11 @@
+## Unreleased
+
+* Added Geokit::MapMatching, an offline HMM/Viterbi map matcher that snaps
+  timestamped GPS observations to caller-supplied candidate road segments
+  using a caller-supplied network distance oracle, with explicit
+  segmentation semantics for one-way roads, long signal gaps, observations
+  without candidates, and unreachable segments.
+
 ## 1.16.1
 
 * Fixing tests and removing additional references to unavailable geocoder.
@@ -231,4 +239,3 @@
 * new Bounds class for in-memory bounds-related operations
 * ability to calculate heading and midpoint between two points
 * ability to calculate endpoint given a point, heading, and distance
-
