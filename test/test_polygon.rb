@@ -90,4 +90,11 @@ class PolygonTest < Test::Unit::TestCase #:nodoc: all
   def test_centroid_for_open_poly
     assert_ll @open_polygon.centroid, 44.95912726688109, -92.7068888186181
   end
+
+  def test_centroid_remains_planar_for_backward_compatibility
+    assert_ll @polygon.centroid, 45.27463866133501, -93.41400121829719
+    assert_respond_to @polygon, :area
+    assert_respond_to @polygon, :first_moment
+    assert_respond_to @polygon, :spherical_center
+  end
 end

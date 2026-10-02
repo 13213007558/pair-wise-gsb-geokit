@@ -101,6 +101,33 @@ FYI, that `.ll` method means "latitude longitude".
 
 See the RDOC more more ... there are also operations on rectangular bounds (e.g., determining if a point is within bounds, find the center, etc).
 
+### Spherical polygons
+
+Geokit::SphericalPolygon treats every ring edge as a great-circle arc.
+Outer rings are oriented with the covered region on the left when viewed
+from outside the sphere; holes use the opposite orientation. Reversing an
+outer ring selects the complementary region, including regions larger than
+one hemisphere.
+
+    outer = [
+      Geokit::LatLng.new(0, 0),
+      Geokit::LatLng.new(0, 90),
+      Geokit::LatLng.new(90, 0)
+    ]
+    polygon = Geokit::SphericalPolygon.new(outer, [], radius: Geokit::SphericalPolygon::DEFAULT_RADIUS)
+
+    polygon.area          # square meters
+    polygon.first_moment  # [Mx, My, Mz], in cubic meters
+    polygon.center        # LatLng in the direction of M, or nil when M is near zero
+
+The area is a true spherical surface integral, not a planar shoelace area
+scaled by an Earth radius. Multiple disjoint outer rings can be passed as an
+array of rings. The unnormalized first moments of non-overlapping regions
+add, so a region may be split and recombined without changing the result.
+center is the radial projection of the surface center of mass; it returns
+nil when antipodal symmetry makes the first moment too small to choose a
+unique direction.
+
 ## CONFIGURATION
 
 If you're using this gem by itself, here are the configuration options:

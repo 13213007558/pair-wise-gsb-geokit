@@ -1,11 +1,12 @@
 module Geokit
   # A complex polygon made of multiple points.  End point must equal start point to close the poly.
   class Polygon
-    attr_accessor :points
+    attr_accessor :points, :holes
 
     # Pass in an array of Geokit::LatLng
-    def initialize(points)
+    def initialize(points, holes = [])
       @points = points
+      @holes = holes
 
       # A Polygon must be 'closed', the last point equal to the first point
       # Append the first point to the array to close the polygon
@@ -35,10 +36,30 @@ module Geokit
     end # contains?
 
     # A polygon is static and can not be updated with new points, as a result
-    # calculate the centroid once and store it when requested.
+    # calculate the longitude/latitude planar centroid once when requested.
+    # Use spherical_center for the true first-surface-moment center.
     def centroid
       @centroid ||= calculate_centroid
     end # end centroid
+
+    def spherical_area(radius: Geokit::SphericalPolygon::DEFAULT_RADIUS)
+      to_spherical_polygon(radius: radius).area
+    end
+
+    def spherical_first_moment(radius: Geokit::SphericalPolygon::DEFAULT_RADIUS)
+      to_spherical_polygon(radius: radius).first_moment
+    end
+
+    def spherical_center(epsilon: Geokit::SphericalPolygon::CENTER_EPSILON)
+      to_spherical_polygon.center(epsilon: epsilon)
+    end
+    alias_method :area, :spherical_area
+    alias_method :first_moment, :spherical_first_moment
+    alias_method :center, :spherical_center
+
+    def to_spherical_polygon(radius: Geokit::SphericalPolygon::DEFAULT_RADIUS)
+      Geokit::SphericalPolygon.new(@points, @holes, radius: radius)
+    end
 
     private
 
