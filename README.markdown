@@ -101,6 +101,44 @@ FYI, that `.ll` method means "latitude longitude".
 
 See the RDOC more more ... there are also operations on rectangular bounds (e.g., determining if a point is within bounds, find the center, etc).
 
+## MINIMUM SPHERICAL CAP
+
+Find a central point that minimizes the maximum great-circle distance to a
+set of locations:
+
+```ruby
+points = [
+  Geokit::LatLng.new(0.0, 0.0),
+  Geokit::LatLng.new(0.0, 120.0),
+  Geokit::LatLng.new(0.0, 240.0)
+]
+cap = Geokit::LatLng.minimum_spherical_cap(points, units: :kms)
+
+cap.center            # Geokit::LatLng representative center
+cap.angular_radius    # angular radius in radians (Math::PI / 2 here)
+cap.radius_degrees    # angular radius in degrees (90.0 here)
+cap.radius            # angular_radius * Geokit earth radius for :units
+cap.support_ids       # identities of points determining the boundary
+cap.support_points    # original input objects on the boundary
+cap.unique?           # false when the optimal center is not unique
+```
+
+Supported unit values are `:miles`, `:kms`, `:meters`, and `:nms`. The
+spherical calculation uses radians internally; multiply `angular_radius` by
+`Geokit::LatLng.units_sphere_multiplier(units)` to convert to surface
+distance, which is exactly what `radius` does. Repeated input locations are
+preserved in `support_ids`, so every repeated boundary identity is reported.
+By default identities are zero-based input indices. Supply `ids:` to provide
+custom identities. Locations responding to `identity` or `id` are also used
+automatically when `ids:` is omitted.
+
+Sets that fit in a hemisphere can still have a non-unique center, such as an
+antipodal pair. Sets whose origin lies inside the convex hull need a cap
+larger than a hemisphere and are supported as well. In every non-unique case
+the returned center is a deterministic representative selected from an optimal
+solution, while `unique?` is false; it is never an arithmetic coordinate
+average.
+
 ## CONFIGURATION
 
 If you're using this gem by itself, here are the configuration options:
