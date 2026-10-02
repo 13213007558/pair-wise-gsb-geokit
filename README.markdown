@@ -299,6 +299,29 @@ Geoloc can capture multiple results through its "all" method.
 geo.all is just an array of additional Geolocs, so do what you want with it. If you call .all on a
 geoloc that doesn't have any additional results, you will get  an array of one.
 
+## MINIMAL SPHERICAL CAP
+
+`LatLng.minimal_spherical_cap` returns the center and angular radius of the
+smallest spherical cap covering all supplied points:
+
+    points = [[37.7749, -122.4194], [40.7128, -74.0060]]
+    cap = Geokit::LatLng.minimal_spherical_cap(points, units: :kms)
+
+    cap.center
+    cap.angular_radius        # radians
+    cap.angular_radius_degrees
+    cap.radius                # angular_radius * Earth radius in :units
+    cap.radius_in_units(:miles)
+
+The result also reports the zero-based input indices for the points which
+determine the boundary (`support_indices`), every point on the boundary
+(`boundary_indices`), and whether another optimal center exists
+(`unique_center?`). When the center is not unique, a deterministic
+representative is returned and `nonunique_reason` explains the degeneracy.
+
+Duplicate points, points on one great circle, antipodal points, and sets that
+require a cap larger than a hemisphere are handled. Coordinates are never
+averaged; centers come from candidate one-, two-, and three-point supports.
 
 ## NOTES ON WHAT'S WHERE
 

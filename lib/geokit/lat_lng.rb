@@ -26,6 +26,11 @@ module Geokit
       new(json['lat'], json['lng'])
     end
 
+    # Returns the smallest spherical cap covering all supplied points.
+    def self.minimal_spherical_cap(*points, units: Geokit.default_units)
+      Geokit::SphericalCap.for_points(*points, units: units)
+    end
+
     # Latitude attribute setter; stored as a float.
     def lat=(lat)
       @lat = lat.to_f if lat
