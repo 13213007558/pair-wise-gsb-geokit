@@ -299,6 +299,46 @@ Geoloc can capture multiple results through its "all" method.
 geo.all is just an array of additional Geolocs, so do what you want with it. If you call .all on a
 geoloc that doesn't have any additional results, you will get  an array of one.
 
+## GEOHASH COVERAGE PLANNING
+
+Use `Geokit::GeohashCoveragePlanner.plan` when querying candidate locations
+inside a polygon. The result is an antichain of Geohash prefixes that covers
+the polygon, including its boundary, while minimizing spherical overcoverage
+within the requested cell budget. Pass polygons with holes as an array of
+rings; GeoJSON Polygon hashes are also accepted.
+
+```ruby
+polygon = [[0, 0], [0, 20], [20, 20], [20, 0]]
+covering = Geokit::GeohashCoveragePlanner.plan(
+  polygon,
+  max_precision: 6,
+  max_cells: 500,
+  search_budget: 100_000
+)
+
+covering.prefixes                # query these Geohash prefixes
+covering.overcoverage_area       # square meters outside the polygon
+covering.optimal?                # true when the search proves optimality
+covering.cell_budget_limited?    # true when max_cells forces coarser cells
+covering.search_budget_exhausted? # true when the search was truncated
+```
+
+The prefixes are only a conservative query expansion. Apply an exact
+point-in-polygon test to the returned candidates afterwards.
+
+`each_covering` enumerates every legal covering on a small precision tree,
+and `exhaustive_plan` provides a brute-force optimal result for comparison:
+
+```ruby
+all_coverings = Geokit::GeohashCoveragePlanner.each_covering(
+  polygon, max_precision: 2
+).to_a
+
+reference = Geokit::GeohashCoveragePlanner.exhaustive_plan(
+  polygon, max_precision: 2
+)
+```
+
 
 ## NOTES ON WHAT'S WHERE
 
