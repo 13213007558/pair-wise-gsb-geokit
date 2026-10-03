@@ -16,6 +16,7 @@ The Geokit gem provides:
    It also provides a fail-over mechanism, in case your input fails to geocode in one service.
  * Rectangular bounds calculations: is a point within a given rectangular bounds?
  * Heading and midpoint calculations
+ * In-memory spherical spatial index with bulk loading, stable-ID updates, radius queries, and exact k-nearest-neighbor queries.
 
 Combine this gem with the [geokit-rails](http://github.com/geokit/geokit-rails) to get location-based finders for your Rails app.
 
@@ -100,6 +101,35 @@ Options to control the use of HTTPS are described below in the Configuration sec
 FYI, that `.ll` method means "latitude longitude".
 
 See the RDOC more more ... there are also operations on rectangular bounds (e.g., determining if a point is within bounds, find the center, etc).
+
+## SPATIAL INDEX
+
+`Geokit::SpatialIndex` stores stable IDs with their coordinates and uses an
+equirectangular grid for candidate pruning. Grid pruning uses a spherical
+angular-distance lower bound over each latitude/longitude cell, not a flat
+latitude/longitude rectangle.
+
+```ruby
+index = Geokit::SpatialIndex.build(
+  1 => [37.79363, -122.396116],
+  2 => [37.786217, -122.416190]
+)
+
+index.insert(3, [37.8, -122.4])
+index.update(3, [37.9, -122.5])
+index.delete(2)
+
+index.within_radius([37.79, -122.40], 5, units: :kms)
+# => IDs ordered by exact sphere distance, then ID for ties
+
+index.nearest([37.79, -122.40], 10, units: :kms)
+index.distance_computations
+# => exact point distances calculated since the index or counter was reset
+```
+
+Pass `with_distances: true` to return `[id, distance]` pairs. Coordinates at the
+same location may use different IDs. Reinserting an ID replaces its old
+position without leaving a duplicate copy.
 
 ## CONFIGURATION
 
