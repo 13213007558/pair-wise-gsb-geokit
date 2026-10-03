@@ -101,6 +101,35 @@ FYI, that `.ll` method means "latitude longitude".
 
 See the RDOC more more ... there are also operations on rectangular bounds (e.g., determining if a point is within bounds, find the center, etc).
 
+## LOCAL SPATIAL INDEX
+
+Use `Geokit::SpatialIndex` for an in-memory index of points on a sphere. It
+supports bulk loading, stable IDs, updates, deletions, radius queries, and
+exact nearest-neighbor queries. Multiple IDs may share the same coordinate,
+and equal-distance results are ordered by ID. Pruning uses a 3D spherical
+bounding-box lower bound, so the antimeridian and poles need no special cases.
+
+```ruby
+index = Geokit::SpatialIndex.new(
+  { 1 => [37.79, -122.40], 2 => [37.78, -122.41] },
+  units: :kms
+)
+
+index.add(3, 40.71, -74.00)
+index.add(1, 37.80, -122.41) # Update: the old coordinate is removed.
+index.delete(2)
+
+index.within_radius([37.79, -122.40], 5)
+# => [#<Geokit::SpatialIndex::Result id=1, distance=1.21...>]
+
+index.nearest([37.79, -122.40], 10)
+# => Results ordered by distance, then ID.
+
+index.distance_calculation_count
+# => Number of indexed coordinates for which the sphere distance was
+#    actually evaluated by the most recent query.
+```
+
 ## CONFIGURATION
 
 If you're using this gem by itself, here are the configuration options:
