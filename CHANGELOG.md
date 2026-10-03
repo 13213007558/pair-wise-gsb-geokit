@@ -1,3 +1,10 @@
+## Unreleased
+
+* Added Geokit::SphericalDelaunay: spherical Delaunay triangulation of stations
+  on the unit sphere, returning directed faces, edge adjacency and station
+  identity mapping. Raises NotApplicableError when stations fit in a closed
+  hemisphere; numerical degeneracies are reported via Triangulation#degeneracies.
+
 ## 1.16.1
 
 * Fixing tests and removing additional references to unavailable geocoder.
@@ -231,4 +238,3 @@
 * new Bounds class for in-memory bounds-related operations
 * ability to calculate heading and midpoint between two points
 * ability to calculate endpoint given a point, heading, and distance
-

@@ -300,6 +300,31 @@ geo.all is just an array of additional Geolocs, so do what you want with it. If 
 geoloc that doesn't have any additional results, you will get  an array of one.
 
 
+## SPHERICAL DELAUNAY TRIANGULATION
+
+Geokit can build a Delaunay adjacency network for stations distributed over
+the globe (e.g. observatories). Give it stations anywhere on the sphere and
+it returns directed triangular faces, edge adjacency and the mapping back to
+your original station identities:
+
+```ruby
+    irb> stations = [Geokit::LatLng.new(35.0, 45.0), ...]
+    irb> tri = Geokit::SphericalDelaunay.triangulate(stations)
+    irb> tri.faces.first.vertices   # station indices, counter-clockwise from outside
+    irb> tri.edges.first.half_edges # [from, to, face] directed adjacency
+    irb> tri.index_map[0]           # input position => canonical station
+    irb> tri.euler_characteristic   # 2 for a valid sphere triangulation
+    irb> tri.total_area             # 4*pi for full coverage
+```
+
+Stations must cover the whole sphere: if they all fit in a closed hemisphere
+a `Geokit::SphericalDelaunay::NotApplicableError` is raised. Duplicate
+stations are merged (and reported), cocircular stations are triangulated by a
+deterministic rule, and input order never changes the topology. Numerically
+unreliable situations are collected in `tri.degeneracies` instead of being
+silently resolved. All math is done on 3D unit vectors, so nothing special
+happens at the 180 degree meridian or the poles.
+
 ## NOTES ON WHAT'S WHERE
 
 mappable.rb contains the Mappable module, which provides basic
