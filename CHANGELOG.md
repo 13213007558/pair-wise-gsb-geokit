@@ -1,3 +1,11 @@
+## Unreleased
+
+* Added Geokit::SphericalPolygon: polygons on the sphere with great-circle
+  edges, supporting union, intersection and difference (results may have
+  multiple shells and holes). All math uses local 3D coordinates, so
+  polygons crossing the antimeridian or surrounding a pole work without
+  any planar projection.
+
 ## 1.16.1
 
 * Fixing tests and removing additional references to unavailable geocoder.
@@ -231,4 +239,3 @@
 * new Bounds class for in-memory bounds-related operations
 * ability to calculate heading and midpoint between two points
 * ability to calculate endpoint given a point, heading, and distance
-

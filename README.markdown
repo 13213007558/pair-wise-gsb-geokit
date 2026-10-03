@@ -320,6 +320,31 @@ geocoders.rb contains all the geocoder implementations. All the geocoders
 inherit from a common base (class Geocoder) and implement the private method
 do_geocode.
 
+## SPHERICAL POLYGONS
+
+Geokit::SphericalPolygon models a polygon on the sphere whose edges are
+great-circle minor arcs (always the shorter arc, strictly less than half a
+circumference). It supports boolean operations and point containment
+computed entirely with local 3D coordinates -- no planar projection -- so
+regions crossing the 180th meridian or surrounding a pole just work:
+
+    a = Geokit::SphericalPolygon.new([{ shell: [[-10, 170], [-10, -170], [10, -170], [10, 170]] }])
+    b = Geokit::SphericalPolygon.new([{ shell: [[-5, 175], [-5, -165], [15, -165], [15, 175]] }])
+    a.contains?(Geokit::LatLng.new(0, 180)) # => true
+    a & b        # intersection (also: a.intersection(b))
+    a | b        # union        (also: a.union(b))
+    a - b        # difference   (also: a.difference(b))
+    (a | b).area # steradians; pass a radius for squared length units
+
+Results may contain multiple parts, each with one outer ring (shell) and
+any number of holes, exposed via `polygon.parts`. Ring orientation on
+input does not matter; rings are normalized so the polygon interior is on
+the left of the traversal direction, and output rings follow the same
+convention. Rotating the start vertex of a ring does not change the
+geometry. Self-intersecting rings, (nearly) antipodal edge endpoints and
+half-circumference edges are reported as
+Geokit::SphericalPolygon::InvalidRingError instead of being guessed at.
+
 ## WRITING YOUR OWN GEOCODERS
 
 If you would like to write your own geocoders, you can do so by requiring 'geokit' or 'geokit/geocoders.rb' in a new file and subclassing the base class (which is class "Geocoder").
