@@ -1,3 +1,10 @@
+## Unreleased
+
+* Added Geokit::Spherical: spherical polygons with great-circle short-arc
+  edges and union/intersection/difference boolean operations that work
+  across the antimeridian and around the poles, with multiple outer rings
+  and holes, plus strict validation of degenerate input.
+
 ## 1.16.1
 
 * Fixing tests and removing additional references to unavailable geocoder.
@@ -231,4 +238,3 @@
 * new Bounds class for in-memory bounds-related operations
 * ability to calculate heading and midpoint between two points
 * ability to calculate endpoint given a point, heading, and distance
-

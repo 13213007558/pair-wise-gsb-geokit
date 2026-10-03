@@ -101,6 +101,37 @@ FYI, that `.ll` method means "latitude longitude".
 
 See the RDOC more more ... there are also operations on rectangular bounds (e.g., determining if a point is within bounds, find the center, etc).
 
+## SPHERICAL POLYGONS
+
+`Geokit::Spherical` provides polygons on the sphere whose edges are
+great-circle short arcs (strictly shorter than half a great circle), with
+boolean operations that keep working when a delivery zone crosses the 180
+meridian or wraps around a pole. Everything is computed locally in 3D unit
+vector space; lat/lng is never projected to a plane and no network access
+is involved.
+
+Ring orientation convention: the polygon interior is on the LEFT of
+travel, so outer rings run counterclockwise and holes clockwise. Input
+rings are re-oriented automatically when needed; each input ring must
+enclose less than a hemisphere so its interior is unambiguous. Rotating
+the start vertex of a ring never changes the geometry.
+
+    zone_a = Geokit::Spherical::Polygon.new([[-10, 170], [-10, -170], [10, -170], [10, 170]])
+    zone_b = Geokit::Spherical::Polygon.new([[-5, 160], [-5, -160], [5, -160], [5, 160]])
+
+    zone_a.contains?([0, 180])          # => true (works across the antimeridian)
+    zone_a.union(zone_b)                # => Geokit::Spherical::MultiPolygon
+    zone_a.intersection(zone_b)         # => MultiPolygon (may have several
+                                      #    outer rings and holes)
+    zone_a.difference(zone_b)           # => MultiPolygon
+    zone_a.area                         # => spherical area in steradians
+
+Invalid input is reported instead of silently guessed: self-intersecting
+rings raise `Geokit::Spherical::SelfIntersectionError`, edges between
+(nearly) antipodal endpoints (ambiguous half-great-circle arcs) raise
+`Geokit::Spherical::AntipodalEdgeError`, and misplaced holes raise
+`Geokit::Spherical::RingNestingError`.
+
 ## CONFIGURATION
 
 If you're using this gem by itself, here are the configuration options:
