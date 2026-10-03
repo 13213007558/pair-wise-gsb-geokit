@@ -300,6 +300,46 @@ geo.all is just an array of additional Geolocs, so do what you want with it. If 
 geoloc that doesn't have any additional results, you will get  an array of one.
 
 
+## GEOHASH COVERAGE
+
+Use `Geokit::GeohashCoverage.plan` to build an antichain of Geohash prefixes
+for candidate queries. The cover is deliberately conservative: polygons with
+holes are supported, and spherical polygon edges are handled across the
+antimeridian and near the poles. Filter returned candidates with an exact
+point-in-polygon test after querying.
+
+```ruby
+polygon = [
+  Geokit::LatLng.new(40, -10),
+  Geokit::LatLng.new(40, 10),
+  Geokit::LatLng.new(50, 10),
+  Geokit::LatLng.new(50, -10)
+]
+holes = []
+
+cover = Geokit::GeohashCoverage.plan(
+  polygon,
+  holes: holes,
+  max_precision: 6,
+  max_cells: 500,
+  search_budget: 20_000
+)
+
+cover.prefixes               # no prefix contains another prefix
+cover.overcoverage_area      # square meters on the reference sphere
+cover.optimal?               # exact optimum within both budgets
+cover.cell_budget_limited?   # cell cap prevented further refinement
+cover.max_precision_reached? # precision cap prevents refinement
+cover.search_budget_reached? # search stopped before proving optimality
+```
+
+When the cell budget is too small, the planner conservatively expands prefixes
+and still reports the actual spherical overcoverage. A short search budget is
+reported separately through `search_budget_reached?`; in that case the cover is
+valid, but `optimal?` is false. `all_covers` enumerates every legal antichain
+cover at a small precision and is intended for tests and cross-checking.
+
+
 ## NOTES ON WHAT'S WHERE
 
 mappable.rb contains the Mappable module, which provides basic
