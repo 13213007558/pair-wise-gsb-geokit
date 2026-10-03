@@ -300,6 +300,41 @@ geo.all is just an array of additional Geolocs, so do what you want with it. If 
 geoloc that doesn't have any additional results, you will get  an array of one.
 
 
+## SPHERICAL DELAUNAY TRIANGULATION
+
+`Geokit::SphericalDelaunay.triangulate` builds the spherical Delaunay
+triangulation of stations on the unit sphere. It returns outward oriented
+faces, edge adjacency and the mapping back to the original stations:
+
+```ruby
+stations = [
+  Geokit::LatLng.new(37.7749, -122.4194),
+  Geokit::LatLng.new(40.7128, -74.0060)
+  # ... stations spread over the whole globe
+]
+result = Geokit::SphericalDelaunay.triangulate(stations)
+
+result.faces                    # [[i, j, k], ...], outward oriented
+result.adjacency                # neighbour face across each edge
+result.edges                    # sorted undirected edges
+result.vertex_original_indices  # canonical vertex => input indices
+result.original_to_vertex       # input index => canonical vertex
+result.total_area               # 4*PI for a full-sphere triangulation
+result.euler_characteristic     # V - E + F == 2
+```
+
+Inputs may be `Geokit::LatLng`, `[lat, lng]` pairs in degrees or normalized
+`[x, y, z]` unit vectors. The stations must cover the whole sphere and must
+not all lie in one closed hemisphere; otherwise
+`Geokit::SphericalDelaunay::InapplicableError` is raised. Exact duplicates
+are merged deterministically and exact co-circular configurations are fanned
+with an order-independent rule. Near duplicates and near co-circular data are
+reported as degeneracies; pass `strict: true` to raise
+`Geokit::SphericalDelaunay::DegenerateDataError`, otherwise the records are
+available on `result.degeneracies` and `result.unreliable` is set. The
+`tolerance:` option (radians, default `1e-9`) controls predicate decisions.
+The 180th meridian and the poles are treated as seams, never as cuts.
+
 ## NOTES ON WHAT'S WHERE
 
 mappable.rb contains the Mappable module, which provides basic
