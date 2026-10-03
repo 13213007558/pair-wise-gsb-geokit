@@ -101,6 +101,37 @@ FYI, that `.ll` method means "latitude longitude".
 
 See the RDOC more more ... there are also operations on rectangular bounds (e.g., determining if a point is within bounds, find the center, etc).
 
+## CONTINUOUS FRÉCHET DISTANCE
+
+Fréchet distance compares the geometry of two trajectories, so sparse and
+dense samples of the same route can be compared continuously. Geokit does not
+choose a map projection for you: provide a callable local projection that
+converts both paths into the same metric plane.
+
+```ruby
+    meters_per_degree = 111_319.49
+    local_origin = 37.79
+    projection = lambda do |point|
+      [
+        point.lng * meters_per_degree * Math.cos(local_origin * Math::PI / 180),
+        point.lat * meters_per_degree
+      ]
+    end
+
+    result = Geokit::ContinuousFrechet.distance_between(
+      route_one, route_two, projection
+    )
+    result.distance       # feasible upper estimate in projection units
+    result.lower_bound    # numeric lower bound
+    result.upper_bound    # numeric upper bound
+    result.witness.pairs  # monotonic arc-length pairs for both routes
+```
+
+The solver propagates reachable intervals through the continuous segment free
+space rather than running discrete dynamic programming only at vertices. It
+therefore allows arbitrary subdivision of either input segment without
+changing the distance.
+
 ## CONFIGURATION
 
 If you're using this gem by itself, here are the configuration options:
