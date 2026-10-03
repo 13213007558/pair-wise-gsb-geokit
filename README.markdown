@@ -101,6 +101,39 @@ FYI, that `.ll` method means "latitude longitude".
 
 See the RDOC more more ... there are also operations on rectangular bounds (e.g., determining if a point is within bounds, find the center, etc).
 
+## FRECHET DISTANCE BETWEEN TRAJECTORIES
+
+`Geokit::Frechet` computes the *continuous* Frechet distance between two
+LatLng trajectories — useful for comparing routes (e.g. two vehicles driving
+roughly the same path) when the GPS sampling densities differ. It is not a
+vertex-to-vertex dynamic program and not a Hausdorff distance: one side may
+stop and wait, neither may go backwards, and subdividing a segment never
+changes the answer.
+
+The Frechet distance needs a metric plane, so the caller supplies a local
+projection mapping each `Geokit::LatLng` to planar `[x, y]` meters. Geokit
+does not guess a map extent for you; pick an origin that suits your data (or
+pass any callable of your own):
+
+```ruby
+projection = Geokit::Frechet.equirectangular_projection(
+  Geokit::LatLng.new(37.0, -122.0)
+)
+result = Geokit::Frechet.distance(track_a, track_b,
+                                  projection: projection,
+                                  tolerance: 1e-3) # meters
+result.distance    # best estimate (midpoint of the certified bracket)
+result.lower_bound # certified bounds on the true continuous distance
+result.upper_bound
+result.precision   # upper_bound - lower_bound
+result.witness     # monotone pairing of arc-length positions [s, t] (meters),
+                   # from [0, 0] to [length_a, length_b]; linear interpolation
+                   # gives a continuous matching with leash <= upper_bound
+```
+
+Empty trajectories raise `ArgumentError`; zero-length segments, repeated
+points and single-point trajectories have well-defined results.
+
 ## CONFIGURATION
 
 If you're using this gem by itself, here are the configuration options:

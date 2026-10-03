@@ -1,3 +1,9 @@
+## Unreleased
+
+* Added Geokit::Frechet: continuous Frechet distance between LatLng
+  trajectories with a caller-supplied local projection, certified
+  lower/upper bounds, and a monotone continuous pairing witness.
+
 ## 1.16.1
 
 * Fixing tests and removing additional references to unavailable geocoder.
@@ -231,4 +237,3 @@
 * new Bounds class for in-memory bounds-related operations
 * ability to calculate heading and midpoint between two points
 * ability to calculate endpoint given a point, heading, and distance
-
