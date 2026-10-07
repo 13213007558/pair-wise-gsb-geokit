@@ -101,6 +101,54 @@ FYI, that `.ll` method means "latitude longitude".
 
 See the RDOC more more ... there are also operations on rectangular bounds (e.g., determining if a point is within bounds, find the center, etc).
 
+## ELLIPSOIDAL GEODESICS
+
+For higher accuracy than the spherical/flat formulas, Geokit ships an
+ellipsoidal (oblate spheroid) model based on Vincenty's 1975 formulae.
+WGS84 is provided as a preset; any reasonable oblate ellipsoid
+(semi-major axis > 0, 0 <= flattening < 1) can be used instead.
+
+```ruby
+    # Inverse: shortest distance + azimuths at both endpoints
+    res = Geokit::Ellipsoid::WGS84.inverse([51.5074, -0.1278], [40.7128, -74.0060], units: :kms)
+    res.distance         # => 5585.2335789... (kms)
+    res.initial_azimuth  # => 288.3689981... (degrees, clockwise from north)
+    res.final_azimuth    # => 231.2412291...
+
+    # Direct: endpoint + final azimuth from start, azimuth and distance
+    res = Geokit::Ellipsoid::WGS84.direct([51.5074, -0.1278], 288.369, 5585.234, units: :kms)
+    res.endpoint         # => #<Geokit::LatLng ...> near 40.7128,-74.0060
+    res.final_azimuth
+
+    # Custom ellipsoid (here: Bessel 1841)
+    bessel = Geokit::Ellipsoid.new(6377397.155, 1 / 299.1528128)
+    bessel.inverse(a, b, units: :meters)
+```
+
+The `:ellipsoid` formula also plugs into the usual Mappable API (the
+sphere/flat behavior is unchanged and remains the default):
+
+```ruby
+    a.distance_to(b, formula: :ellipsoid)              # shortest distance
+    a.endpoint(heading, dist, formula: :ellipsoid)     # direct solution
+    Geokit.default_ellipsoid = Geokit::Ellipsoid::WGS84 # used by the above
+```
+
+Conventions:
+
+* Units (`:miles`, `:kms`, `:meters`, `:nms`) default to
+  `Geokit.default_units` and are shared by the inverse and direct
+  solutions. No network or geocoding service is involved.
+* Azimuths are degrees clockwise from north in [0, 360); result longitudes
+  are normalized to [-180, 180) and longitude differences wrap across the
+  antimeridian.
+* Coincident points return a zero distance and zero azimuths; a
+  zero-distance direct call returns the start point.
+* (Nearly) antipodal points have no unique shortest geodesic. Vincenty's
+  iteration does not converge there, so a
+  `Geokit::Ellipsoid::NotConvergedError` is raised -- Geokit never falls
+  back to a spherical approximation behind your back.
+
 ## CONFIGURATION
 
 If you're using this gem by itself, here are the configuration options:
@@ -109,6 +157,8 @@ If you're using this gem by itself, here are the configuration options:
     # These defaults are used in Geokit::Mappable.distance_to and in acts_as_mappable
     Geokit::default_units = :miles # others :kms, :nms, :meters
     Geokit::default_formula = :sphere
+    # Reference ellipsoid for the :ellipsoid formula (Geokit::Ellipsoid::WGS84 by default)
+    Geokit.default_ellipsoid = Geokit::Ellipsoid::WGS84
 
     # This is the timeout value in seconds to be used for calls to the geocoder web
     # services.  For no timeout at all, comment out the setting.  The timeout unit

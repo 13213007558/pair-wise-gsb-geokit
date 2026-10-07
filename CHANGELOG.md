@@ -1,3 +1,13 @@
+## Unreleased
+
+* Added Geokit::Ellipsoid: Vincenty geodesics on a reference ellipsoid.
+  Inverse (shortest distance + initial/final azimuths) and direct
+  (endpoint from start/azimuth/distance) solutions, WGS84 preset plus
+  custom ellipsoid support, and a :ellipsoid formula for
+  distance_between/endpoint. Raises NotConvergedError for (nearly)
+  antipodal points instead of falling back to a spherical approximation.
+  Sphere/flat behavior is unchanged.
+
 ## 1.16.1
 
 * Fixing tests and removing additional references to unavailable geocoder.
@@ -231,4 +241,3 @@
 * new Bounds class for in-memory bounds-related operations
 * ability to calculate heading and midpoint between two points
 * ability to calculate endpoint given a point, heading, and distance
-

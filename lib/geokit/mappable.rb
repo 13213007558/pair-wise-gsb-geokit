@@ -7,9 +7,13 @@ module Geokit
   #
   # At present, two forms of distance calculations are provided:
   #
-  # * Pythagorean Theory (flat Earth) - which assumes the world is flat and
-  #   loses accuracy over long distances.
-  # * Haversine (sphere) - which is fairly accurate, but at a performance cost.
+      # * Pythagorean Theory (flat Earth) - which assumes the world is flat and
+      #   loses accuracy over long distances.
+      # * Haversine (sphere) - which is fairly accurate, but at a performance cost.
+      # * Vincenty (ellipsoid) - geodesics on a reference ellipsoid
+      #   (Geokit.default_ellipsoid, WGS84 by default); the most accurate.
+      #   See Geokit::Ellipsoid for azimuths, the direct solution and the
+      #   conventions for coincident/antipodal points.
   #
   # Distance units supported are :miles, :kms, and :nms.
   module Mappable
@@ -35,7 +39,7 @@ module Geokit
       #   valid values are :miles, :kms, :nms.
       #   Default to Geokit::default_units
       # @option options [String, Symbol] :formula
-      #   valid values are :flat or :sphere.
+      #   valid values are :flat, :sphere or :ellipsoid.
       #   Default to Geokit::default_formula
       # @example
       #   Geokit::GeoLoc.distance_between("43.8374249,4.3600687", "44.1253665,4.0852818")
@@ -49,6 +53,8 @@ module Geokit
         case formula
         when :sphere then distance_between_sphere(from, to, units)
         when :flat   then distance_between_flat(from, to, units)
+        when :ellipsoid
+          Geokit.default_ellipsoid.inverse(from, to, units: units).distance
         end
       end
 
@@ -92,8 +98,16 @@ module Geokit
 
       # Given a start point, distance, and heading (in degrees), provides
       # an endpoint. Returns a LatLng instance. Typically, the instance method
-      # will be used instead of this method.
+      # will be used instead of this method. Pass :formula => :ellipsoid to
+      # solve the direct problem on Geokit.default_ellipsoid instead of the
+      # sphere (the default, unchanged behavior).
       def endpoint(start, heading, distance, options = {})
+        if options[:formula] == :ellipsoid
+          return Geokit.default_ellipsoid.direct(
+            start, heading, distance, units: get_units!(options)
+          ).endpoint
+        end
+
         units   = get_units!(options)
         ratio   = distance.to_f / units_sphere_multiplier(units)
         start   = Geokit::LatLng.normalize(start)
@@ -215,7 +229,8 @@ module Geokit
     # Returns the distance from another point.  The other point parameter is
     # required to have lat and lng attributes.  Valid options are:
     # :units - valid values are :miles, :kms, :or :nms (:miles is the default)
-    # :formula - valid values are :flat or :sphere (:sphere is the default)
+    # :formula - valid values are :flat, :sphere or :ellipsoid
+    #   (:sphere is the default)
     def distance_to(other, options = {})
       self.class.distance_between(self, other, options)
     end
@@ -236,8 +251,10 @@ module Geokit
     end
 
     # Returns the endpoint, given a heading (in degrees) and distance.
-    # Valid option:
+    # Valid options:
     # :units - valid values are :miles, :kms, or :nms (:miles is the default)
+    # :formula - pass :ellipsoid to use Geokit.default_ellipsoid instead of
+    #   the sphere (:sphere is the default)
     def endpoint(heading, distance, options = {})
       self.class.endpoint(self, heading, distance, options)
     end
